@@ -25,11 +25,11 @@ ORDER BY 1, 2
 
 --All countries population % infected with Covid 19 from descending order
 
-SELECT location, population, CONCAT(ROUND(MAX((total_cases) / population), 4) * 100, '%') AS pop_infected_with_covid
+SELECT location, population, MAX(total_cases) AS infected_count, ROUND(MAX((total_cases/population)),4)*100 AS pop_infected_with_covid
 FROM PortfolioProject.dbo.CovidDeaths
 WHERE continent IS NOT NULL
 GROUP BY location, population
-ORDER BY CAST(REPLACE(CONCAT(ROUND(MAX((total_cases) / population), 4) * 100, '%'), '%', '') AS DECIMAL) DESC;
+ORDER BY pop_infected_with_covid DESC;
 
 
 --Countries # of mortalities from descending order
@@ -42,15 +42,17 @@ ORDER BY 2 DESC
 
 --Continents # of mortalities from descending order
 
-SELECT continent, MAX(total_deaths) AS continent_deaths
+SELECT location, SUM(new_deaths) AS total_death_count
 FROM PortfolioProject.dbo.CovidDeaths
-WHERE continent IS NOT NULL
-GROUP BY continent
-ORDER BY 2 DESC
+WHERE continent IS NULL
+AND location NOT IN ('World', 'European Union', 'International')
+AND location NOT LIKE '%income%'
+GROUP BY location
+ORDER BY total_death_count DESC
 
 --Total global cases, deaths and deaths per 100 cases
 
-SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, ROUND((SUM(new_deaths) / NULLIF(SUM(new_cases), 0)),4)*100  AS death_per100_cases
+SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, ROUND((SUM(new_deaths) / NULLIF(SUM(new_cases), 0)),4)*100  AS death_percentage
 FROM PortfolioProject.dbo.CovidDeaths
 WHERE continent IS NOT NULL
 ORDER BY 1,2
@@ -114,3 +116,34 @@ JOIN PortfolioProject.dbo.CovidVaccinations v
 ON d.location = v.location
 AND d.date = v.date
 WHERE d.continent IS NOT NULL
+
+--Queries used for Tableau data visualization
+
+--1.) 
+SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, ROUND((SUM(new_deaths) / NULLIF(SUM(new_cases), 0)),4)*100  AS death_percentage
+FROM PortfolioProject.dbo.CovidDeaths
+WHERE continent IS NOT NULL
+ORDER BY 1,2
+
+--2.)
+SELECT location, SUM(new_deaths) AS total_death_count
+FROM PortfolioProject.dbo.CovidDeaths
+WHERE continent IS NULL
+AND location NOT IN ('World', 'European Union', 'International')
+AND location NOT LIKE '%income%'
+GROUP BY location
+ORDER BY total_death_count DESC
+
+--3.)
+SELECT location, population, MAX(total_cases) AS infected_count, ROUND(MAX((total_cases/population)),4)*100 AS pop_infected_with_covid
+FROM PortfolioProject.dbo.CovidDeaths
+WHERE continent IS NOT NULL
+GROUP BY location, population
+ORDER BY pop_infected_with_covid DESC
+
+--4.)
+SELECT location, population, date, MAX(total_cases) AS infected_count, ROUND(MAX((total_cases/population)),4)*100 AS pop_infected_with_covid
+FROM PortfolioProject.dbo.CovidDeaths
+WHERE continent IS NOT NULL
+GROUP BY location, population, date
+ORDER BY pop_infected_with_covid DESC
